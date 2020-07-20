@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {},
+	"extensions": {
+		"recommendations": [
+			"hookyqr.beautify",
+			"editorconfig.editorconfig",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode"
+		]
+	}
+}
