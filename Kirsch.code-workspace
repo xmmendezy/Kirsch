@@ -10,7 +10,10 @@
 			"hookyqr.beautify",
 			"editorconfig.editorconfig",
 			"dbaeumer.vscode-eslint",
-			"esbenp.prettier-vscode"
+			"esbenp.prettier-vscode",
+			"formulahendry.auto-close-tag",
+			"formulahendry.auto-rename-tag",
+			"wix.vscode-import-cost"
 		]
 	}
 }

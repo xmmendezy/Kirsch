@@ -1,9 +1,7 @@
 <nav class="navbar">
 	<div class="container">
 		<div class="navbar-brand">
-			<a class="navbar-item title title-page" href="/">
-				Kirsch Template
-			</a>
+			{{#page '' 'Kirsch Template' '' 'navbar-item title title-page' }}{{/page}}
 			<span class="navbar-burger burger" data-target="navbarMenu">
 				<span></span>
 				<span></span>
@@ -12,9 +10,7 @@
 		</div>
 		<div id="navbarMenu" class="navbar-menu">
 			<div class="navbar-end">
-				<a class="navbar-item is-active is-size-5 has-text-weight-semibold">
-					About
-				</a>
+				{{#page 'about' '@about.url' '' 'navbar-item is-size-5 has-text-weight-semibold' }}{{/page}}
 			</div>
 		</div>
 	</div>

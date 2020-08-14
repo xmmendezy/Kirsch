@@ -19,11 +19,14 @@ import rename from 'gulp-rename';
 import { create } from 'browser-sync';
 import layouts from 'handlebars-layouts';
 import htmlmin from 'gulp-htmlmin';
+import sitemap from 'gulp-sitemap';
+import replace from 'gulp-replace';
 
 import package_json from './package.json';
 import helpers from './handlebars_helpers';
 
 const src_folder = './src/';
+const src_assets_i18n = src_folder + 'i18n/';
 const src_assets_partials = src_folder + 'partials/';
 const src_assets_pages = src_folder + 'pages/';
 const src_assets_folder = src_folder + 'assets/';
@@ -113,7 +116,7 @@ function insert_styles() {
 		transform: function (file, enc, callback) {
 			enc;
 			const filename = file.basename.split('.')[0];
-			function getReplacement() {
+			const getReplacement = () => {
 				let result = '';
 				for (const file_css of files_css) {
 					if (!file_css.endsWith('.css.map')) {
@@ -130,7 +133,7 @@ function insert_styles() {
 					}
 				}
 				return result;
-			}
+			};
 			const replacement = getReplacement();
 			if (file.isStream()) {
 				file.contents = file.contents.pipe(replacestream(style_hash, replacement));
@@ -145,37 +148,80 @@ function insert_styles() {
 	});
 }
 
-task('clear', () => del([dist_folder]));
-
-task('templates', () => {
-	const templateData = JSON.parse(readFileSync('./src/strings.json', 'utf-8'));
-	const options = {
-		ignorePartials: true,
-		batch: [src_assets_partials],
-		helpers: {
-			capitals: (str: string) => {
-				return str.toUpperCase();
+const templates_tasks: string[] = [];
+const files_i18n = readdirSync(src_assets_i18n);
+let default_lang = '';
+for (const file_lang of files_i18n) {
+	const template_task = `templates-${file_lang.split('.')[0]}`;
+	task(template_task, () => {
+		const filename: string[] = file_lang.split('.');
+		const lang: string = filename[0];
+		let page_dist_folder = dist_folder;
+		let root_path = '/';
+		if (filename.length === 3 && !default_lang) {
+			default_lang = lang;
+		} else {
+			page_dist_folder = `${dist_folder}${lang}`;
+			root_path = `/${lang}/`;
+		}
+		const page = (path: string, label: string, target: string, classess: string, id: string): string => {
+			const get_label = (): string => {
+				if (typeof label === 'string') {
+					if (label.startsWith('@')) {
+						label = label.slice(1);
+						let str = templateData;
+						label.split('.').map(pj => {
+							if (pj) {
+								str = str[pj];
+							}
+						});
+						return str as string;
+					} else {
+						return label;
+					}
+				} else {
+					return path;
+				}
+			};
+			label = get_label();
+			target = typeof target === 'string' ? target : '';
+			classess = typeof classess === 'string' ? classess : '';
+			id = typeof id === 'string' ? id : '';
+			return `<a target="${target}" href="${root_path}${path}" class="${classess}" id="${id}">${label}</a>`;
+		};
+		const templateData: any = JSON.parse(readFileSync(`./src/i18n/${file_lang}`, 'utf-8'));
+		const options = {
+			ignorePartials: true,
+			batch: [src_assets_partials],
+			helpers: {
+				capitals: (str: string): string => {
+					return str.toUpperCase();
+				},
+				script,
+				style,
+				page,
+				...helpers,
 			},
-			script,
-			style,
-			...helpers,
-		},
-	};
+		};
 
-	return src([src_assets_pages + '**/*.hbs'])
-		.pipe(handlebars_compile(templateData, options))
-		.pipe(
-			rename(path => {
-				path.extname = '.html';
-			}),
-		)
-		.pipe(htmlmin({ collapseWhitespace: true }))
-		.pipe(insert_scripts())
-		.pipe(insert_styles())
-		.pipe(dest(dist_folder))
-		.pipe(cache.clear({}))
-		.pipe(browserSync.stream());
-});
+		return src([src_assets_pages + '**/*.hbs'])
+			.pipe(handlebars_compile(templateData, options))
+			.pipe(
+				rename(path => {
+					path.extname = '.html';
+				}),
+			)
+			.pipe(htmlmin({ collapseWhitespace: true }))
+			.pipe(insert_scripts())
+			.pipe(insert_styles())
+			.pipe(dest(page_dist_folder))
+			.pipe(cache.clear({}))
+			.pipe(browserSync.stream());
+	});
+	templates_tasks.push(template_task);
+}
+
+task('clear', () => del([dist_folder]));
 
 task('js', () => {
 	return src([src_assets_folder + 'js/**/*.js'], { since: lastRun('js') })
@@ -228,6 +274,20 @@ task('ts', () => {
 		.pipe(write('.', {}))
 		.pipe(dest(dist_assets_folder + 'js'))
 		.pipe(browserSync.stream());
+});
+
+task('sitemap', () => {
+	return src([dist_folder + '*.html'], {
+		read: false,
+		since: lastRun('sitemap'),
+	})
+		.pipe(
+			sitemap({
+				siteUrl: 'https://www.kronio.io',
+			}),
+		)
+		.pipe(replace('.html', ''))
+		.pipe(dest(dist_folder));
 });
 
 task('sass', () => {
@@ -325,7 +385,7 @@ task('watch', () => {
 	});
 
 	const files_watch = [
-		src_folder + 'strings.json',
+		src_assets_i18n + '**/*.json',
 		src_assets_partials + '**/*.hbs',
 		src_assets_pages + '**/*.hbs',
 		src_assets_folder + 'sass/**/*.sass',
@@ -371,13 +431,13 @@ task('is_not_production', async () => {
 });
 
 // Compile
-task('compile', series('ts', 'js', 'sass', 'scss', 'css', 'templates'));
+task('compile', series(['ts', 'js', 'sass', 'scss', 'css', ...templates_tasks]));
 
 // Build
-task('build', series('clear', 'is_production', 'compile', 'images', 'vendor'));
+task('build', series('clear', 'is_production', 'compile', 'images', 'vendor', 'sitemap'));
 
 // Dev
-task('dev', series('compile', 'images-dev', 'vendor'));
+task('dev', series('compile', 'images-dev', 'vendor', 'sitemap'));
 
 // Default task
 task('default', series('clear', 'is_not_production', 'dev', parallel('serve', 'watch')));
