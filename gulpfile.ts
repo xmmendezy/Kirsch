@@ -143,7 +143,6 @@ function insert_styles() {
 				const result = chunks.join(replacement);
 				file.contents = Buffer.from(result);
 			}
-			console.log('Hola');
 			callback(undefined, file);
 		},
 	});
@@ -165,7 +164,6 @@ for (const file_lang of files_i18n) {
 			page_dist_folder = `${dist_folder}${lang}`;
 			root_path = `/${lang}/`;
 		}
-		console.log(page_dist_folder);
 		const page = (path: string, label: string, target: string, classess: string, id: string): string => {
 			const get_label = (): string => {
 				if (typeof label === 'string') {
