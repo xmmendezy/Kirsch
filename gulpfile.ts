@@ -143,6 +143,7 @@ function insert_styles() {
 				const result = chunks.join(replacement);
 				file.contents = Buffer.from(result);
 			}
+			console.log('Hola');
 			callback(undefined, file);
 		},
 	});
@@ -160,10 +161,11 @@ for (const file_lang of files_i18n) {
 		let root_path = '/';
 		if (filename.length === 3 && !default_lang) {
 			default_lang = lang;
-		} else {
+		} else if (default_lang !== lang) {
 			page_dist_folder = `${dist_folder}${lang}`;
 			root_path = `/${lang}/`;
 		}
+		console.log(page_dist_folder);
 		const page = (path: string, label: string, target: string, classess: string, id: string): string => {
 			const get_label = (): string => {
 				if (typeof label === 'string') {
@@ -283,7 +285,7 @@ task('sitemap', () => {
 	})
 		.pipe(
 			sitemap({
-				siteUrl: 'https://www.kronio.io',
+				siteUrl: 'https://www.kirsch.com',
 			}),
 		)
 		.pipe(replace('.html', ''))
@@ -410,7 +412,7 @@ task('serve', () => {
 			},
 		},
 		port: 3000,
-		open: false,
+		open: true,
 	});
 });
 
