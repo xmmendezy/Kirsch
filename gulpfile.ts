@@ -286,7 +286,7 @@ task('sitemap', () => {
 				siteUrl: 'https://www.kirsch.com',
 			}),
 		)
-		.pipe(replace('.html', ''))
+		.pipe((replace as any)('.html', ''))
 		.pipe(dest(dist_folder));
 });
 
@@ -356,9 +356,9 @@ task('images-dev', () => {
 		.pipe(browserSync.stream());
 });
 
-task('vendor', () => {
+task('vendor', async () => {
 	if (node_dependencies.length === 0) {
-		return new Promise(resolve => {
+		return new Promise<void>(resolve => {
 			console.log('No dependencies specified');
 			resolve();
 		});
@@ -401,7 +401,7 @@ task('watch', () => {
 });
 
 // Serve
-task('serve', () => {
+task('serve', async () => {
 	return browserSync.init({
 		server: {
 			baseDir: ['dist'],
