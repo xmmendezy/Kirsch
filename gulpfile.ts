@@ -39,6 +39,8 @@ const browserSync = create();
 
 handlebars_compile.Handlebars.registerHelper(layouts(handlebars_compile.Handlebars));
 
+(sass as any).compiler = require('node-sass');
+
 let is_production = false;
 let hash = '';
 let script_hash = '';
@@ -224,7 +226,7 @@ for (const file_lang of files_i18n) {
 task('clear', () => del([dist_folder]));
 
 task('js', () => {
-	return src([src_assets_folder + 'js/**/*.js'], { since: lastRun('js') })
+	return src([src_assets_folder + 'js/main.js'], { allowEmpty: true })
 		.pipe(plumber())
 		.pipe(init())
 		.pipe(
@@ -253,7 +255,7 @@ task('js', () => {
 
 task('ts', () => {
 	const tsconfig = JSON.parse(readFileSync('tsconfig.json', 'utf-8'));
-	return src([src_assets_folder + 'ts/**/*.ts'], { since: lastRun('ts') })
+	return src([src_assets_folder + 'ts/main.ts'], { allowEmpty: true })
 		.pipe(plumber())
 		.pipe(init())
 		.pipe(tsc(tsconfig['compilerOptions']))
@@ -283,7 +285,7 @@ task('sitemap', () => {
 	})
 		.pipe(
 			sitemap({
-				siteUrl: 'https://www.kirsch.com',
+				siteUrl: 'http://www.digitaltrustonline.net',
 			}),
 		)
 		.pipe((replace as any)('.html', ''))
@@ -291,7 +293,8 @@ task('sitemap', () => {
 });
 
 task('sass', () => {
-	return src([src_assets_folder + 'sass/**/*.sass'], { since: lastRun('sass') })
+	return src([src_assets_folder + 'sass/main.sass'], { allowEmpty: true })
+		.pipe(sass({ includePaths: ['node_modules'] }).on('error', sass.logError))
 		.pipe(init())
 		.pipe(plumber())
 		.pipe(sass())
@@ -308,8 +311,8 @@ task('sass', () => {
 });
 
 task('scss', () => {
-	return src([src_assets_folder + 'scss/**/*.scss'], { since: lastRun('scss') })
-		.pipe(sass({ includePaths: ['node_modules/'] }).on('error', sass.logError))
+	return src([src_assets_folder + 'scss/main.scss'], { allowEmpty: true })
+		.pipe(sass({ includePaths: ['node_modules'] }).on('error', sass.logError))
 		.pipe(init())
 		.pipe(plumber())
 		.pipe(sass())
@@ -326,7 +329,7 @@ task('scss', () => {
 });
 
 task('css', () => {
-	return src([src_assets_folder + 'css/**/*.css'], { since: lastRun('css') })
+	return src([src_assets_folder + 'css/main.css'], { allowEmpty: true })
 		.pipe(init())
 		.pipe(plumber())
 		.pipe(autoprefixer())
@@ -356,6 +359,12 @@ task('images-dev', () => {
 		.pipe(browserSync.stream());
 });
 
+task('fonts', () => {
+	return src([src_assets_folder + 'fonts/**/*'], { since: lastRun('fonts') })
+		.pipe(dest(dist_assets_folder + 'fonts'))
+		.pipe(browserSync.stream());
+});
+
 task('vendor', async () => {
 	if (node_dependencies.length === 0) {
 		return new Promise<void>(resolve => {
@@ -377,26 +386,25 @@ task('vendor', async () => {
 
 // Watch
 task('watch', () => {
-	const watch_images = src_assets_folder + 'images/**/*.+(png|jpg|jpeg|gif|svg|ico)';
 	const watch_vendor: string[] = [];
 
 	node_dependencies.forEach(dependency => {
 		watch_vendor.push(node_modules_folder + dependency + '/**/*.*');
 	});
 
-	const files_watch = [
-		src_assets_i18n + '**/*.json',
-		src_assets_partials + '**/*.hbs',
-		src_assets_pages + '**/*.hbs',
-		src_assets_folder + 'sass/**/*.sass',
-		src_assets_folder + 'scss/**/*.scss',
-		src_assets_folder + 'css/**/*.css',
-		src_assets_folder + 'js/**/*.js',
-		src_assets_folder + 'ts/**/*.ts',
-	];
-
-	watch(files_watch, series('dev')).on('change', browserSync.reload);
-	watch(watch_images, series('images-dev')).on('change', browserSync.reload);
+	watch(
+		[src_assets_i18n + '**/*.json', src_assets_partials + '**/*.hbs', src_assets_pages + '**/*.hbs'],
+		series('templates'),
+	).on('change', browserSync.reload);
+	watch(src_assets_folder + 'sass/**/*.sass', series('sass')).on('change', browserSync.reload);
+	watch(src_assets_folder + 'scss/**/*.scss', series('scss')).on('change', browserSync.reload);
+	watch(src_assets_folder + 'css/**/*.css', series('css')).on('change', browserSync.reload);
+	watch(src_assets_folder + 'js/**/*.js', series('js')).on('change', browserSync.reload);
+	watch(src_assets_folder + 'ts/**/*.ts', series('ts')).on('change', browserSync.reload);
+	watch(src_assets_folder + 'images/**/*.+(png|jpg|jpeg|gif|svg|ico)', series('images-dev')).on(
+		'change',
+		browserSync.reload,
+	);
 	watch(watch_vendor, series('vendor')).on('change', browserSync.reload);
 });
 
@@ -430,8 +438,11 @@ task('is_not_production', async () => {
 	style_hash = `<link rel="stylesheet" href="${hash}">`;
 });
 
+// Templates
+task('templates', series(templates_tasks));
+
 // Compile
-task('compile', series(['ts', 'js', 'sass', 'scss', 'css', ...templates_tasks]));
+task('compile', series(['ts', 'js', 'sass', 'scss', 'css', 'fonts', 'templates']));
 
 // Build
 task('build', series('clear', 'is_production', 'compile', 'images', 'vendor', 'sitemap'));
