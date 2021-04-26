@@ -21,6 +21,7 @@ import layouts from 'handlebars-layouts';
 import htmlmin from 'gulp-htmlmin';
 import sitemap from 'gulp-sitemap';
 import replace from 'gulp-replace';
+import merge from 'merge2';
 
 import package_json from './package.json';
 import helpers from './handlebars_helpers';
@@ -285,7 +286,7 @@ task('sitemap', () => {
 	})
 		.pipe(
 			sitemap({
-				siteUrl: 'http://www.digitaltrustonline.net',
+				siteUrl: 'http://www.{{ title }}online.net',
 			}),
 		)
 		.pipe((replace as any)('.html', ''))
@@ -373,15 +374,15 @@ task('vendor', async () => {
 		});
 	}
 
-	return src(
-		node_dependencies.map(dependency => node_modules_folder + dependency + '/**/*.*'),
-		{
-			base: node_modules_folder,
-			since: lastRun('vendor'),
-		},
-	)
-		.pipe(dest(dist_node_modules_folder))
-		.pipe(browserSync.stream());
+	return merge(
+		node_dependencies.map(dependency =>
+			src(node_modules_folder + dependency + '/**/*', {
+				since: lastRun('vendor'),
+			})
+				.pipe(dest(dist_node_modules_folder + dependency.replace(/\/.*/, '')))
+				.pipe(browserSync.stream()),
+		),
+	);
 });
 
 // Watch
