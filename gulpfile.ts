@@ -34,7 +34,7 @@ const src_assets_folder = src_folder + 'assets/';
 const dist_folder = './dist/';
 const dist_assets_folder = dist_folder + 'assets/';
 const node_modules_folder = './node_modules/';
-const dist_node_modules_folder = dist_folder + 'node_modules/';
+const dist_node_modules_folder = dist_folder + 'vendor/';
 const node_dependencies = Object.keys(package_json.dependencies || {});
 const browserSync = create();
 

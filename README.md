@@ -13,3 +13,8 @@ Kirsch utiliza las siguientes tecnologías:
 * Bulma.css
 * TypeScript
 * Handlebars
+
+
+## Dependecias
+
+Solo las dependecias que se incluyen por medio de las etiquietas script o link en el html deben ser incluidas en "dependencies" del package.json, las dependencias que son importadas en archivos typescript, javascript, scss, sass, css deben ser incluidas en devDependencies.
