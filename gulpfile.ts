@@ -286,7 +286,7 @@ task('sitemap', () => {
 	})
 		.pipe(
 			sitemap({
-				siteUrl: 'http://www.{{ title }}online.net',
+				siteUrl: 'http://www.kirsch.com',
 			}),
 		)
 		.pipe((replace as any)('.html', ''))
